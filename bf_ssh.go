@@ -26,13 +26,13 @@ import (
 
 /* Flags Globales*/
 var (
-	host = flag.String("l", "", "Single Host IP:Port")
+	host      = flag.String("l", "", "Single Host IP:Port")
 	list_host = flag.String("L", "", "List of Host IP:Port")
-	user = flag.String("u", "", "SSH User")
-	pwd = flag.String("p", "", "SSH Password")
+	user      = flag.String("u", "", "SSH User")
+	pwd       = flag.String("p", "", "SSH Password")
 	// don't set timer too low, you may bypass the right password, for me it works with 150ms, some other systems needs more than 300ms.
 	tmout = flag.Duration("t", 300*time.Millisecond, "SSH Timeout Dial Response (ex:300ms), don't set this too low")
-    out = flag.String("o", "", "Output file")
+	out   = flag.String("o", "", "Output file")
 )
 
 func main() {
@@ -44,24 +44,24 @@ func main() {
 	flag.Parse()
 	if *user == "" && *pwd == "" && (*host == "" || *list_host == "") {
 		fmt.Printf("\nERROR - Must complete input params\n")
-        flag.PrintDefaults()
-        os.Exit(1)
-    }
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
-    /* Fichero de salida */
-    /*
-    var outfile *os.File
-    if *out == "" {
-        outfile = os.Stdout
-    } else {
-        outfile, err := os.Create(*out)
-        if err != nil {
-            log.Println("Can't create file for writing, exiting.")
-            os.Exit(1)
-        }
-        defer outfile.Close()
-    }
-    */
+	/* Fichero de salida */
+	/*
+	   var outfile *os.File
+	   if *out == "" {
+	       outfile = os.Stdout
+	   } else {
+	       outfile, err := os.Create(*out)
+	       if err != nil {
+	           log.Println("Can't create file for writing, exiting.")
+	           os.Exit(1)
+	       }
+	       defer outfile.Close()
+	   }
+	*/
 	/* Si se pasa como parametro un listado de hosts */
 	if *list_host != "" {
 		readHostList()
@@ -124,8 +124,8 @@ func sshConn(address string) {
 		Auth:            []ssh.AuthMethod{ssh.Password(*pwd)},
 		Timeout:         *tmout,
 	}
-    /* Configuramos los valores que no se hayan cumplimentado */
-    config.SetDefaults()
+	/* Configuramos los valores que no se hayan cumplimentado */
+	config.SetDefaults()
 
 	/* SSH Connection */
 	_, err := ssh.Dial("tcp", address, config)
