@@ -26,12 +26,12 @@ import (
 
 /* Flags Globales*/
 var (
-	host      = flag.String("l", "", "Single Host IP:Port")
-	list_host = flag.String("L", "", "List of Host IP:Port")
+	host      = flag.String("l", "", "Single host in format IP:Port")
+	list_host = flag.String("L", "", "List of host in format IP:Port")
 	user      = flag.String("u", "", "SSH User")
 	pwd       = flag.String("p", "", "SSH Password")
 	// SSH Dial Timeout
-	tmout = flag.Duration("t", 300*time.Millisecond, "Timeout (ex:500ms)")
+	tmout = flag.Duration("t", 300*time.Millisecond, "Timeout")
 	out   = flag.String("o", "", "Output file")
 )
 
@@ -39,16 +39,17 @@ func main() {
 	fmt.Printf("##########################################\n")
 	fmt.Printf("######### GO SSH BRUTE -- v0.0.1 #########\n")
 	fmt.Printf("##########################################\n")
-	fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
 
 	flag.Parse()
 	if *user == "" && *pwd == "" && (*host == "" || *list_host == "") {
 		fmt.Printf("\nERROR - Must complete input params\n")
 		flag.PrintDefaults()
-		fmt.Printf("\nUsage: %s [-l HOST:PORT] [-L HOST LIST] [-u USER] [-p PASSWORD] [-t TMOUT] [-o OUTPUT FILE]\n", os.Args[0])
-		fmt.Printf("Examples: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
+		fmt.Printf("Example: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
 		os.Exit(1)
 	}
+
+    /* Timestamp */
+    fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
 
 	/* Si se pasa como parametro un listado de hosts */
 	if *list_host != "" {
