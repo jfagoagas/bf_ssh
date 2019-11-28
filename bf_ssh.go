@@ -30,19 +30,10 @@ var (
 	list_host = flag.String("L", "", "List of Host IP:Port")
 	user      = flag.String("u", "", "SSH User")
 	pwd       = flag.String("p", "", "SSH Password")
-    // SSH Dial Timeout
+	// SSH Dial Timeout
 	tmout = flag.Duration("t", 300*time.Millisecond, "Timeout (ex:500ms)")
 	out   = flag.String("o", "", "Output file")
 )
-
-/* Canal de comunicaciion */
-var channel = make(chan string)
-
-func usage() {
-	fmt.Printf("\nUsage: %s [-l HOST:PORT] [-L HOST LIST] [-u USER] [-p PASSWORD] [-t TMOUT] [-o OUTPUT FILE]\n", os.Args[0])
-    fmt.Printf("Examples: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
-	os.Exit(1)
-}
 
 func main() {
 	fmt.Printf("##########################################\n")
@@ -54,27 +45,37 @@ func main() {
 	if *user == "" && *pwd == "" && (*host == "" || *list_host == "") {
 		fmt.Printf("\nERROR - Must complete input params\n")
 		flag.PrintDefaults()
-        //usage()
+		fmt.Printf("\nUsage: %s [-l HOST:PORT] [-L HOST LIST] [-u USER] [-p PASSWORD] [-t TMOUT] [-o OUTPUT FILE]\n", os.Args[0])
+		fmt.Printf("Examples: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	/* Fichero de salida */
-    /*
-	var outfile *os.File
-	if *out == "" {
-		outfile = os.Stdout
-	} else {
-		outfile, err = os.Create(*out)
-		if err != nil {
-			log.Fatal("Can't create file for writing, exiting.")
-		}
-		defer outfile.Close()
-	}
-    */
-
 	/* Si se pasa como parametro un listado de hosts */
 	if *list_host != "" {
-		readHostList()
+		/* Leemos la lista */
+		hosts, err := readList(*list_host)
+		if err != nil {
+			log.Fatal("Can't read hosts file")
+		}
+		/* Recorremos el listado de hosts */
+		timeS := *tmout
+		for _, host := range hosts {
+			/* Incrementamos el tiempo de espera por cada hilo */
+			timeS += *tmout
+			/* Direccion IP y puerto del host */
+			ip, port, _ := net.SplitHostPort(host)
+			/* Comprobamos los parametros */
+			if net.ParseIP(ip) == nil || port == "" {
+				fmt.Printf("Bad IP:Port Format -- %s:%s\n", ip, port)
+			} else {
+				/* Si todo es correcto lanzamos la conexion */
+				go sshConn(ip, port)
+			}
+		}
+		/* Dormimos el programa principal hasta que
+		   acabe el proceso */
+		time.Sleep(timeS)
+
 	} else if *host != "" {
 		/* Si se pasa como parametro un host */
 		ip, port, _ := net.SplitHostPort(*host)
@@ -87,37 +88,25 @@ func main() {
 	}
 }
 
-func readHostList() {
-    /* Leemos la lista de host */
-	file, err := os.Open(*list_host)
+func readList(list string) (lst []string, err error) {
+	/* Abrimos la lista indicada */
+	file, err := os.Open(list)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
-	/* Leemos cada entrada del fichero */
+	defer file.Close()
+	/* Leemos cada entrada de la lista */
 	scanner := bufio.NewScanner(file)
-	timeS := *tmout
 	for scanner.Scan() {
-		timeS += *tmout
-		/* Direccion IP y puerto del host */
-		ip, port, _ := net.SplitHostPort(scanner.Text())
-		/* Comprobamos los parametros */
-		if net.ParseIP(ip) == nil || port == "" {
-			fmt.Printf("Bad IP:Port Format -- %s:%s\n", ip, port)
-		} else {
-			go sshConn(ip, port)
-		}
+		lst = append(lst, scanner.Text())
 	}
-	/* Dormimos el programa principal hasta que
-	   acabe el proceso */
-	time.Sleep(timeS)
-	/* Cerramos el fichero */
-	file.Close()
+	return
 }
 
-func sshIsUp(ip, port string) (bool, string) {
-	isUp := false
-    /* Comprobamos si el servicio esta escuchando */
-	addr := net.JoinHostPort(ip, port)
+func sshIsUp(ip, port string) (isUp bool, addr string) {
+	isUp = false
+	/* Comprobamos si el servicio esta escuchando */
+	addr = net.JoinHostPort(ip, port)
 	_, err := net.DialTimeout("tcp", addr, *tmout)
 	/* Si el puerto está cerrado */
 	if err != nil {
@@ -126,7 +115,7 @@ func sshIsUp(ip, port string) (bool, string) {
 		/* Si el servicio en el puerto indicado esta a la escucha */
 		isUp = true
 	}
-	return isUp, addr
+	return
 }
 
 func sshConn(ip, port string) {
