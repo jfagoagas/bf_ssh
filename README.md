@@ -1,5 +1,5 @@
 # bf_ssh
-Simple SSH Brute-forcer in Go❤️
+Simple SSH brute-forcer in Go❤️
 
 1. Get it!
 ```
