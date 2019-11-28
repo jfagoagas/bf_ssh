@@ -35,6 +35,15 @@ var (
 	out   = flag.String("o", "", "Output file")
 )
 
+/* Canal de comunicaciion */
+var channel = make(chan string)
+
+func usage() {
+	fmt.Printf("\nUsage: %s [-l HOST:PORT] [-L HOST LIST] [-u USER] [-p PASSWORD] [-t TMOUT] [-o OUTPUT FILE]\n", os.Args[0])
+    fmt.Printf("Examples: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
+	os.Exit(1)
+}
+
 func main() {
 	fmt.Printf("##########################################\n")
 	fmt.Printf("######### GO SSH BRUTE -- v0.0.1 #########\n")
@@ -43,25 +52,26 @@ func main() {
 
 	flag.Parse()
 	if *user == "" && *pwd == "" && (*host == "" || *list_host == "") {
-		fmt.Printf("\nERROR - Must complete input params\n")
-		flag.PrintDefaults()
+		//fmt.Printf("\nERROR - Must complete input params\n")
+		//flag.PrintDefaults()
+        usage()
 		os.Exit(1)
 	}
 
 	/* Fichero de salida */
-	/*
-	   var outfile *os.File
-	   if *out == "" {
-	       outfile = os.Stdout
-	   } else {
-	       outfile, err := os.Create(*out)
-	       if err != nil {
-	           log.Println("Can't create file for writing, exiting.")
-	           os.Exit(1)
-	       }
-	       defer outfile.Close()
-	   }
-	*/
+    /*
+	var outfile *os.File
+	if *out == "" {
+		outfile = os.Stdout
+	} else {
+		outfile, err = os.Create(*out)
+		if err != nil {
+			log.Fatal("Can't create file for writing, exiting.")
+		}
+		defer outfile.Close()
+	}
+    */
+
 	/* Si se pasa como parametro un listado de hosts */
 	if *list_host != "" {
 		readHostList()
@@ -72,12 +82,13 @@ func main() {
 			fmt.Printf("Bad IP:Port Format -- %s:%s %s\n", ip, port)
 		} else {
 			/* Llamamos al escaner */
-			sshIsUp(ip, port)
+			sshConn(ip, port)
 		}
 	}
 }
 
 func readHostList() {
+    /* Leemos la lista de host */
 	file, err := os.Open(*list_host)
 	if err != nil {
 		log.Fatal(err)
@@ -93,45 +104,50 @@ func readHostList() {
 		if net.ParseIP(ip) == nil || port == "" {
 			fmt.Printf("Bad IP:Port Format -- %s:%s\n", ip, port)
 		} else {
-			/* Llamamos al escaner */
-			go sshIsUp(ip, port)
+			go sshConn(ip, port)
 		}
 	}
 	/* Dormimos el programa principal hasta que
-	   acabe el escaner */
+	   acabe el proceso */
 	time.Sleep(timeS)
 	/* Cerramos el fichero */
 	file.Close()
 }
 
-func sshIsUp(ip, port string) {
+func sshIsUp(ip, port string) (bool, string) {
+	isUp := false
+    /* Comprobamos si el servicio esta escuchando */
 	addr := net.JoinHostPort(ip, port)
-	_, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
+	_, err := net.DialTimeout("tcp", addr, *tmout)
 	/* Si el puerto está cerrado */
 	if err != nil {
 		fmt.Printf("\n\033[1;91mFAILED --> Port %s/tcp is closed on %s\033[0m\n", port, ip)
 	} else {
-		/* Si el servicio en el puerto indicado está abirto */
-		sshConn(addr)
+		/* Si el servicio en el puerto indicado esta a la escucha */
+		isUp = true
 	}
+	return isUp, addr
 }
 
-func sshConn(address string) {
-	/* SSH Client Config */
-	config := &ssh.ClientConfig{
-		User:            *user,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Auth:            []ssh.AuthMethod{ssh.Password(*pwd)},
-		Timeout:         *tmout,
-	}
-	/* Configuramos los valores que no se hayan cumplimentado */
-	config.SetDefaults()
-
-	/* SSH Connection */
-	_, err := ssh.Dial("tcp", address, config)
-	if err != nil {
-		fmt.Printf("\n\033[1;91mFAILED --> host: %s   login: %s   password: %s\033[0m\n", address, *user, *pwd)
-	} else {
-		fmt.Printf("\n\033[1;92mSUCCESS --> host: %s   login: %s   password: %s\033[0m\n", address, *user, *pwd)
+func sshConn(ip, port string) {
+	/* Comprobamos que el puerto esta a la escucha */
+	isUp, addr := sshIsUp(ip, port)
+	if isUp == true {
+		/* SSH Client Config */
+		config := &ssh.ClientConfig{
+			User:            *user,
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Auth:            []ssh.AuthMethod{ssh.Password(*pwd)},
+			Timeout:         *tmout,
+		}
+		/* Configuramos los valores que no se hayan cumplimentado */
+		config.SetDefaults()
+		/* SSH Connection */
+		_, err := ssh.Dial("tcp", addr, config)
+		if err != nil {
+			fmt.Printf("\n\033[1;91mFAILED --> host: %s   login: %s   password: %s\033[0m\n", addr, *user, *pwd)
+		} else {
+			fmt.Printf("\n\033[1;92mSUCCESS --> host: %s   login: %s   password: %s\033[0m\n", addr, *user, *pwd)
+		}
 	}
 }
