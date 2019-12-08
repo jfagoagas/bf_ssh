@@ -40,10 +40,10 @@ var ssh_i []host_data
 var ch = make(chan host_data)
 
 func main() {
-	fmt.Printf("##########################################\n")
-	fmt.Printf("######### GO SSH BRUTE -- v0.0.2 #########\n")
-	fmt.Printf("##########################################\n")
+    /* Banner && Version */
+    banner()
 
+    /* Arguments parsing */
 	flag.Parse()
 	if *list_user == "" && *list_pwd == "" && *list_host == "" && *user == "" && *pass == "" && *host == "" {
 		//flag.PrintDefaults()
@@ -53,14 +53,21 @@ func main() {
 	/* Timestamp */
 	fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
 
+    /* Exec mode: Multi or Single */
 	if *list_host != "" && *list_user != "" && *list_pwd != "" {
 		multiCall(*list_host, *list_user, *list_pwd)
 	} else if *host != "" && *user != "" && *pass != "" {
 		singleCall(*host, *user, *pass)
 	} else {
-		fmt.Printf("\nERROR - You can not mix list and singles inputs\n")
+		fmt.Printf("\nERROR - You can not mix lists and singles inputs\n")
 		os.Exit(1)
 	}
+}
+
+func banner() {
+    fmt.Printf("##########################################\n")
+    fmt.Printf("######### GO SSH BRUTE -- v0.0.2 #########\n")
+    fmt.Printf("##########################################\n")
 }
 
 func usage() {
@@ -197,7 +204,6 @@ func multiCall(list_host, list_user, list_pwd string) {
 
 func writeOutFile(ssh_o []host_data) {
 	f, err := os.Create(*out)
-
 	if err != nil {
 		fmt.Println(err)
 		return
