@@ -1,12 +1,5 @@
 /* Simple SSH Bruteforcing Tool*/
 
-/*
-TO-DO
-- Para el listado de user y pass, si no encuentra nada que no pinte todos los intentos"
-- cada goroutine puede construir un elemento de tipo host con la respuesta y lo almacenamos en un nuevo arrayde resultados-
-- el status debe ser boolean? quizas con un string indicamos mejor el estado si el puerto está cerrado o las credenciales no son validas
-*/
-
 package main
 
 import (
@@ -53,12 +46,8 @@ func main() {
 
 	flag.Parse()
 	if *list_user == "" && *list_pwd == "" && *list_host == "" && *user == "" && *pass == "" && *host == "" {
-		fmt.Printf("\nERROR - Must complete all input params\n")
-		flag.PrintDefaults()
-		fmt.Printf("Examples\n")
-		fmt.Printf("%s -L host-list.txt -U user-list.txt -P pass-list.txt -t 500ms -o output.txt\n", os.Args[0])
-		fmt.Printf("%s -l <host> -u <user> -p <pass>\n\n", os.Args[0])
-		os.Exit(1)
+		//flag.PrintDefaults()
+		usage()
 	}
 
 	/* Timestamp */
@@ -74,24 +63,36 @@ func main() {
 	}
 }
 
+func usage() {
+	fmt.Printf("\nERROR - Must complete all input params\n")
+	fmt.Printf("\nUsage mode:\n")
+	fmt.Printf("Single Mode --> %s -L  <host-list> -U <user-list> -P <pass-list>\n", os.Args[0])
+	fmt.Printf("Multi Mode  --> %s -l <host> -u <user> -p <pass>\n", os.Args[0])
+	fmt.Printf("Note: options -t <500ms> and -o <out-file> are optional\n")
+	os.Exit(1)
+
+}
+
 func singleCall(host, user, pass string) {
+	/* Elemento resultado */
 	var elem host_data
 	/* Direccion IP y puerto del host */
 	ip, port, _ := net.SplitHostPort(host)
-	/* Llamamos a la gorutina */
+	/* Preparamos la espera para la gorutina */
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+	/* Comprobamos los parametros */
 	ip_chk := net.ParseIP(ip)
 	port_chk, _ := strconv.Atoi(port)
 	if ip_chk == nil || (port_chk <= 0 || port_chk >= 65535) {
 		fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ip, port)
 	} else {
+		/* Si todo es correcto ejecutamos la conexión */
 		wg.Add(1)
 		go sshConn(wg, ip, port, user, pass)
 	}
 	/* Recogemos el retorno de la subrutina */
 	elem = <-ch
-	//	fmt.Printf("%+v\n", elem)
 	/* Cerramos el canal la gorutina */
 	close(ch)
 	wg.Done()
@@ -162,8 +163,6 @@ func multiCall(list_host, list_user, list_pwd string) {
 		ip := ssh_i[i].ip
 		port := ssh_i[i].port
 		//status := ssh_i[i].status
-		/* Incrementamos el tiempo de espera por cada hilo */
-		//	timeS += *tmout
 		/* Comprobamos los parametros */
 		ip_chk := net.ParseIP(ssh_i[i].ip)
 		port_chk, _ := strconv.Atoi(ssh_i[i].port)
