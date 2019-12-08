@@ -35,6 +35,16 @@ var (
 	out   = flag.String("o", "", "Output file")
 )
 
+type host struct {
+    IP string
+    port string
+    user string
+    pwd string
+    success bool
+}
+
+var res = map[int]host{}
+
 func main() {
 	fmt.Printf("##########################################\n")
 	fmt.Printf("######### GO SSH BRUTE -- v0.0.1 #########\n")
