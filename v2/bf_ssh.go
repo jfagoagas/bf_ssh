@@ -28,6 +28,15 @@ var (
 	out       = flag.String("o", "", "Output file")
 )
 
+type Status string
+
+const (
+	Closed  Status = "Port closed"
+	Valid   Status = "Valid credentials"
+	Invalid Status = "Invalid credentials"
+	Init    Status = "Initialized"
+)
+
 type host_data struct {
 	ip     string
 	port   string
@@ -36,14 +45,14 @@ type host_data struct {
 	status string
 }
 
-var ssh_i []host_data
+var ssh_input []host_data
 var ch = make(chan host_data)
 
 func main() {
-    /* Banner && Version */
-    banner()
+	/* Banner && Version */
+	banner()
 
-    /* Arguments parsing */
+	/* Arguments parsing */
 	flag.Parse()
 	if *list_user == "" && *list_pwd == "" && *list_host == "" && *user == "" && *pass == "" && *host == "" {
 		//flag.PrintDefaults()
@@ -51,9 +60,9 @@ func main() {
 	}
 
 	/* Timestamp */
-	fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
+	timestamp()
 
-    /* Exec mode: Multi or Single */
+	/* Exec mode: Multi or Single */
 	if *list_host != "" && *list_user != "" && *list_pwd != "" {
 		multiCall(*list_host, *list_user, *list_pwd)
 	} else if *host != "" && *user != "" && *pass != "" {
@@ -64,10 +73,14 @@ func main() {
 	}
 }
 
+func timestamp() {
+	fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
+}
+
 func banner() {
-    fmt.Printf("##########################################\n")
-    fmt.Printf("######### GO SSH BRUTE -- v0.0.3 #########\n")
-    fmt.Printf("##########################################\n")
+	fmt.Printf("##########################################\n")
+	fmt.Printf("######### GO SSH BRUTE -- v0.0.3 #########\n")
+	fmt.Printf("##########################################\n")
 }
 
 func usage() {
@@ -105,19 +118,25 @@ func singleCall(host, user, pass string) {
 	wg.Done()
 	/* Si se ha indicado un fichero de salida */
 	if *out != "" {
-		f, erro := os.Create(*out)
-		if erro != nil {
-			fmt.Println(erro)
-			os.Exit(0)
-		}
-		_, errw := f.WriteString("Host: " + elem.ip + "\tPort: " + elem.port + "\tUser: " + elem.user + "\tPassword: " + elem.pwd + "\tStatus: " + elem.status + "\n")
-		if errw != nil {
-			fmt.Println(errw)
-			f.Close()
-			os.Exit(0)
-		}
+		writeSingleOut(elem)
 	} else {
 		fmt.Printf("%+v\n", elem)
+	}
+}
+
+// Modificar para que sirva para ambos modos single y multi
+func writeSingleOut(elem host) error {
+	f, err := os.Create(*out)
+	if err != nil {
+		fmt.Println(erro)
+
+	}
+	defer f.Close()
+
+	_, errw := f.WriteString("Host: " + elem.ip + "\tPort: " + elem.port + "\tUser: " + elem.user + "\tPassword: " + elem.pwd + "\tStatus: " + elem.status + "\n")
+	if errw != nil {
+		fmt.Println(errw)
+		return errw
 	}
 }
 
@@ -142,9 +161,9 @@ func multiCall(list_host, list_user, list_pwd string) {
 
 	/* Creamos una lista con las posibles combinaciones */
 	var elem host_data
-	for h := 0; h < len(hosts); h++ {
-		for u := 0; u < len(users); u++ {
-			for p := 0; p < len(pwds); p++ {
+	for h := range hosts {
+		for u := range users {
+			for p := range pwds {
 				//var elem host_data
 				/* Direccion IP y puerto del host */
 				ip, port, _ := net.SplitHostPort(hosts[h])
@@ -153,9 +172,9 @@ func multiCall(list_host, list_user, list_pwd string) {
 				elem.port = port
 				elem.user = users[u]
 				elem.pwd = pwds[p]
-				elem.status = "Initialized"
+				elem.status = Init
 				//fmt.Printf("%+v\n", elem)
-				ssh_i = append(ssh_i, elem)
+				ssh_input = append(ssh_input, elem)
 			}
 		}
 	}
@@ -163,28 +182,28 @@ func multiCall(list_host, list_user, list_pwd string) {
 	/* Creamos la espera para cada gorutina */
 	wg := &sync.WaitGroup{}
 	/* Recorremos la lista de elementos*/
-	for i := range ssh_i {
+	for i := range ssh_input {
 		/* Leemos cada elemento */
-		user := ssh_i[i].user
-		pwd := ssh_i[i].pwd
-		ip := ssh_i[i].ip
-		port := ssh_i[i].port
-		//status := ssh_i[i].status
+		user := ssh_input[i].user
+		pwd := ssh_input[i].pwd
+		ip := ssh_input[i].ip
+		port := ssh_input[i].port
+		//status := ssh_input[i].status
 		/* Comprobamos los parametros */
-		ip_chk := net.ParseIP(ssh_i[i].ip)
-		port_chk, _ := strconv.Atoi(ssh_i[i].port)
+		ip_chk := net.ParseIP(ssh_input[i].ip)
+		port_chk, _ := strconv.Atoi(ssh_input[i].port)
 		if ip_chk == nil || (port_chk <= 0 || port_chk >= 65535) {
-			fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ssh_i[i].ip, ssh_i[i].port)
+			fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ssh_input[i].ip, ssh_input[i].port)
 		} else {
 			wg.Add(1)
 			go sshConn(wg, ip, port, user, pwd)
 		}
 	}
 	/* Esperamos la respuesta de las conexiones */
-	ssh_o := make([]host_data, len(ssh_i))
-	for i := range ssh_o {
+	ssh_output := make([]host_data, len(ssh_input))
+	for i := range ssh_output {
 		elem := <-ch
-		ssh_o[i] = elem
+		ssh_output[i] = elem
 	}
 
 	/* Dormimos el programa principal hasta que
@@ -192,29 +211,29 @@ func multiCall(list_host, list_user, list_pwd string) {
 	close(ch)
 	wg.Wait()
 	if *out != "" {
-		writeOutFile(ssh_o)
+		writeOutFile(ssh_output)
 	} else {
-		for i := range ssh_i {
-			if ssh_o[i].status == "Valid credentials" {
-				fmt.Printf("%+v\n", ssh_o[i])
+		for i := range ssh_output {
+			if ssh_output[i].status == Valid {
+				//	fmt.Printf("%+v\n", ssh_output[i])
 			}
 		}
 	}
 }
 
-func writeOutFile(ssh_o []host_data) {
+func writeOutFile(ssh_output []host_data) {
 	f, err := os.Create(*out)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
+	defer f.Close()
 
-	for i := range ssh_o {
-		_, err := f.WriteString("Host: " + ssh_o[i].ip + "\tPort: " + ssh_o[i].port + "\tUser: " + ssh_o[i].user + "\tPassword: " + ssh_o[i].pwd + "\tStatus: \n" + ssh_o[i].status)
+	for i := range ssh_output {
+		_, err := f.WriteString("Host: " + ssh_output[i].ip + "\tPort: " + ssh_output[i].port + "\tUser: " + ssh_output[i].user + "\tPassword: " + ssh_output[i].pwd + "\tStatus: \n" + ssh_output[i].status)
 		if err != nil {
 			fmt.Println(err)
-			f.Close()
-			return
+			os.Exit(1)
 		}
 	}
 }
@@ -239,14 +258,14 @@ func sshIsUp(ip, port string) (isUp bool, addr string) {
 	/* Comprobamos si el servicio esta escuchando */
 	addr = net.JoinHostPort(ip, port)
 	_, err := net.DialTimeout("tcp", addr, *tmout)
-	var elem_o host_data
-	elem_o.ip = ip
-	elem_o.port = port
+	var elem_out host_data
+	elem_out.ip = ip
+	elem_out.port = port
 	/* Si el puerto está cerrado */
 	if err != nil {
 		fmt.Printf("\n\033[1;91mFAILED --> Port %s/tcp is closed on %s\033[0m\n", port, ip)
-		elem_o.status = "Port closed"
-		ch <- elem_o
+		elem_out.status = Closed
+		ch <- elem_out
 	} else {
 		/* Si el servicio en el puerto indicado esta a la escucha */
 		isUp = true
@@ -270,19 +289,19 @@ func sshConn(wg *sync.WaitGroup, ip, port, user, pwd string) {
 		config.SetDefaults()
 		/* SSH Connection */
 		_, err := ssh.Dial("tcp", addr, config)
-		var elem_o host_data
-		elem_o.ip = ip
-		elem_o.port = port
-		elem_o.user = user
-		elem_o.pwd = pwd
+		var elem_out host_data
+		elem_out.ip = ip
+		elem_out.port = port
+		elem_out.user = user
+		elem_out.pwd = pwd
 		if err != nil {
 			fmt.Printf("\n\033[1;91mFAILED --> host: %s   login: %s   password: %s\033[0m\n", addr, user, pwd)
-			elem_o.status = "Invalid credentials"
-			ch <- elem_o
+			elem_out.status = Invalid
+			ch <- elem_out
 		} else {
 			fmt.Printf("\n\033[1;92mSUCCESS --> host: %s   login: %s   password: %s\033[0m\n", addr, user, pwd)
-			elem_o.status = "Valid credentials"
-			ch <- elem_o
+			elem_out.status = Valid
+			ch <- elem_out
 		}
 	}
 }
