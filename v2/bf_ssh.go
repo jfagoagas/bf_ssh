@@ -80,7 +80,7 @@ func timestamp() {
 
 func banner() {
 	fmt.Printf("##########################################\n")
-	fmt.Printf("######### GO SSH BRUTE -- v0.0.3 #########\n")
+	fmt.Printf("######### GO SSH BRUTE -- v0.0.4 #########\n")
 	fmt.Printf("##########################################\n")
 }
 
@@ -93,27 +93,39 @@ func usage() {
 	os.Exit(1)
 }
 
+func ip_port_checker(ip, port string) (result bool) {
+	result = false
+	ip_parsed := net.ParseIP(ip)
+	port_parsed, _ := strconv.Atoi(port)
+	if ip_parsed == nil && (port_parsed <= 0 || port_parsed >= 65535) {
+		fmt.Printf("\nERROR - Bad IP:Port Format -- %s:%s\n", ip, port)
+	} else if ip_parsed == nil {
+		fmt.Printf("\nERROR - Bad IP Format -- %s\n", ip)
+	} else if port_parsed <= 0 || port_parsed >= 65535 {
+		fmt.Printf("\nERROR - Bad Port Format -- %s\n", port)
+	} else {
+		result = true
+	}
+	return
+}
+
 func singleCall(host, user, pass string) {
-    ssh_output = make([]host_data, 1)
+	ssh_output = make([]host_data, 1)
 	/* Direccion IP y puerto del host */
 	ip, port, _ := net.SplitHostPort(host)
+	if len(ip) == 0 || len(port) == 0 {
+		fmt.Printf("\nERROR - IP or port can not be empty -- %s:%s\n", ip, port)
+		os.Exit(1)
+	}
 	/* Elemento resultado */
 	var elem host_data
 	/* Preparamos la espera para la gorutina */
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	/* Comprobamos los parametros */
-	ip_parsed := net.ParseIP(ip)
-	port_parsed, _ := strconv.Atoi(port)
-	if ip_parsed == nil && (port_parsed <= 0 || port_parsed >= 65535) {
-		fmt.Printf("\nERROR - Bad IP:Port Format\n")
-        os.Exit(1)
-    } else if ip_parsed == nil {
-        fmt.Printf("\nERROR - Bad IP Format\n")
-        os.Exit(1)
-    } else if (port_parsed <= 0 || port_parsed >= 65535) {
-        fmt.Printf("\nERROR - Bad Port Format\n")
-        os.Exit(1)
+	result := ip_port_checker(ip, port)
+	if result == false {
+		os.Exit(1)
 	} else {
 		/* Si todo es correcto ejecutamos la conexión */
 		wg.Add(1)
@@ -160,6 +172,10 @@ func multiCall(list_host, list_user, list_pwd string) {
 				//var elem host_data
 				/* Direccion IP y puerto del host */
 				ip, port, _ := net.SplitHostPort(hosts[h])
+				if len(ip) == 0 || len(port) == 0 {
+                    fmt.Printf("\nERROR - IP or port can not be empty -- %s:%s\n")
+					os.Exit(1)
+				}
 				/* Construimos el elemento */
 				elem.ip = ip
 				elem.port = port
@@ -183,12 +199,11 @@ func multiCall(list_host, list_user, list_pwd string) {
 		port := ssh_input[i].port
 		//status := ssh_input[i].status
 		/* Comprobamos los parametros */
-		ip_parsed := net.ParseIP(ssh_input[i].ip)
-		port_parsed, _ := strconv.Atoi(ssh_input[i].port)
-		if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
-			fmt.Printf("\nBad IP:Port Format -- %s:%d\n", ip_parsed, port_parsed)
-            continue
+		result := ip_port_checker(ip, port)
+		if result == false {
+			os.Exit(1)
 		} else {
+			/* Si todo es correcto ejecutamos la conexión */
 			wg.Add(1)
 			go sshConn(wg, ip, port, user, pwd)
 		}
