@@ -94,6 +94,7 @@ func usage() {
 }
 
 func singleCall(host, user, pass string) {
+    ssh_output = make([]host_data, 1)
 	/* Direccion IP y puerto del host */
 	ip, port, _ := net.SplitHostPort(host)
 	/* Elemento resultado */
@@ -106,6 +107,7 @@ func singleCall(host, user, pass string) {
 	port_parsed, _ := strconv.Atoi(port)
 	if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
 		fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ip, port)
+        os.Exit(1)
 	} else {
 		/* Si todo es correcto ejecutamos la conexión */
 		wg.Add(1)
@@ -121,7 +123,7 @@ func singleCall(host, user, pass string) {
 	if *out != "" {
 		writeOutFile(ssh_output)
 	} else {
-		fmt.Printf("%+v\n", elem)
+		//fmt.Printf("%+v\n", elem)
 	}
 }
 
@@ -179,6 +181,7 @@ func multiCall(list_host, list_user, list_pwd string) {
 		port_parsed, _ := strconv.Atoi(ssh_input[i].port)
 		if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
 			fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ssh_input[i].ip, ssh_input[i].port)
+            continue
 		} else {
 			wg.Add(1)
 			go sshConn(wg, ip, port, user, pwd)
