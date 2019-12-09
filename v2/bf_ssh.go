@@ -66,7 +66,7 @@ func main() {
 
 func banner() {
     fmt.Printf("##########################################\n")
-    fmt.Printf("######### GO SSH BRUTE -- v0.0.2 #########\n")
+    fmt.Printf("######### GO SSH BRUTE -- v0.0.3 #########\n")
     fmt.Printf("##########################################\n")
 }
 
