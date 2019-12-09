@@ -42,10 +42,11 @@ type host_data struct {
 	port   string
 	user   string
 	pwd    string
-	status string
+	status Status
 }
 
 var ssh_input []host_data
+var ssh_output []host_data
 var ch = make(chan host_data)
 
 func main() {
@@ -90,53 +91,37 @@ func usage() {
 	fmt.Printf("Multi Mode  --> %s -l <host> -u <user> -p <pass>\n", os.Args[0])
 	fmt.Printf("Note: options -t <500ms> and -o <out-file> are optional\n")
 	os.Exit(1)
-
 }
 
 func singleCall(host, user, pass string) {
-	/* Elemento resultado */
-	var elem host_data
 	/* Direccion IP y puerto del host */
 	ip, port, _ := net.SplitHostPort(host)
+	/* Elemento resultado */
+	var elem host_data
 	/* Preparamos la espera para la gorutina */
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	/* Comprobamos los parametros */
-	ip_chk := net.ParseIP(ip)
-	port_chk, _ := strconv.Atoi(port)
-	if ip_chk == nil || (port_chk <= 0 || port_chk >= 65535) {
+	ip_parsed := net.ParseIP(ip)
+	port_parsed, _ := strconv.Atoi(port)
+	if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
 		fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ip, port)
 	} else {
 		/* Si todo es correcto ejecutamos la conexión */
 		wg.Add(1)
 		go sshConn(wg, ip, port, user, pass)
 	}
-	/* Recogemos el retorno de la subrutina */
+	/* Recogemos el retorno de la gorutina */
 	elem = <-ch
+	ssh_output[0] = elem
 	/* Cerramos el canal la gorutina */
 	close(ch)
 	wg.Done()
 	/* Si se ha indicado un fichero de salida */
 	if *out != "" {
-		writeSingleOut(elem)
+		writeOutFile(ssh_output)
 	} else {
 		fmt.Printf("%+v\n", elem)
-	}
-}
-
-// Modificar para que sirva para ambos modos single y multi
-func writeSingleOut(elem host) error {
-	f, err := os.Create(*out)
-	if err != nil {
-		fmt.Println(erro)
-
-	}
-	defer f.Close()
-
-	_, errw := f.WriteString("Host: " + elem.ip + "\tPort: " + elem.port + "\tUser: " + elem.user + "\tPassword: " + elem.pwd + "\tStatus: " + elem.status + "\n")
-	if errw != nil {
-		fmt.Println(errw)
-		return errw
 	}
 }
 
@@ -144,19 +129,19 @@ func multiCall(list_host, list_user, list_pwd string) {
 	/* Leemos la lista de hosts */
 	hosts, err := readList(list_host)
 	if err != nil {
-		log.Fatal("Can't read hosts file")
+		log.Fatal("Can not read hosts file")
 	}
 
 	/* Leemos la lista de usuarios */
 	users, err := readList(list_user)
 	if err != nil {
-		log.Fatal("Can't read users file")
+		log.Fatal("Can not read users file")
 	}
 
 	/* Leemos la lista de contraseñas */
 	pwds, err := readList(list_pwd)
 	if err != nil {
-		log.Fatal("Can't read passwords file")
+		log.Fatal("Can not read passwords file")
 	}
 
 	/* Creamos una lista con las posibles combinaciones */
@@ -190,9 +175,9 @@ func multiCall(list_host, list_user, list_pwd string) {
 		port := ssh_input[i].port
 		//status := ssh_input[i].status
 		/* Comprobamos los parametros */
-		ip_chk := net.ParseIP(ssh_input[i].ip)
-		port_chk, _ := strconv.Atoi(ssh_input[i].port)
-		if ip_chk == nil || (port_chk <= 0 || port_chk >= 65535) {
+		ip_parsed := net.ParseIP(ssh_input[i].ip)
+		port_parsed, _ := strconv.Atoi(ssh_input[i].port)
+		if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
 			fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ssh_input[i].ip, ssh_input[i].port)
 		} else {
 			wg.Add(1)
@@ -230,7 +215,7 @@ func writeOutFile(ssh_output []host_data) {
 	defer f.Close()
 
 	for i := range ssh_output {
-		_, err := f.WriteString("Host: " + ssh_output[i].ip + "\tPort: " + ssh_output[i].port + "\tUser: " + ssh_output[i].user + "\tPassword: " + ssh_output[i].pwd + "\tStatus: \n" + ssh_output[i].status)
+		_, err := f.WriteString("Host: " + ssh_output[i].ip + "\tPort: " + ssh_output[i].port + "\tUser: " + ssh_output[i].user + "\tPassword: " + ssh_output[i].pwd + "\tStatus: " + string(ssh_output[i].status) + "\n")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
