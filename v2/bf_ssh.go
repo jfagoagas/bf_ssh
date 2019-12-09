@@ -105,8 +105,14 @@ func singleCall(host, user, pass string) {
 	/* Comprobamos los parametros */
 	ip_parsed := net.ParseIP(ip)
 	port_parsed, _ := strconv.Atoi(port)
-	if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
-		fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ip, port)
+	if ip_parsed == nil && (port_parsed <= 0 || port_parsed >= 65535) {
+		fmt.Printf("\nERROR - Bad IP:Port Format\n")
+        os.Exit(1)
+    } else if ip_parsed == nil {
+        fmt.Printf("\nERROR - Bad IP Format\n")
+        os.Exit(1)
+    } else if (port_parsed <= 0 || port_parsed >= 65535) {
+        fmt.Printf("\nERROR - Bad Port Format\n")
         os.Exit(1)
 	} else {
 		/* Si todo es correcto ejecutamos la conexión */
@@ -180,7 +186,7 @@ func multiCall(list_host, list_user, list_pwd string) {
 		ip_parsed := net.ParseIP(ssh_input[i].ip)
 		port_parsed, _ := strconv.Atoi(ssh_input[i].port)
 		if ip_parsed == nil || (port_parsed <= 0 || port_parsed >= 65535) {
-			fmt.Printf("\nBad IP:Port Format -- %s:%s\n", ssh_input[i].ip, ssh_input[i].port)
+			fmt.Printf("\nBad IP:Port Format -- %s:%d\n", ip_parsed, port_parsed)
             continue
 		} else {
 			wg.Add(1)
