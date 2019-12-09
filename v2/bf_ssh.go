@@ -87,8 +87,8 @@ func banner() {
 func usage() {
 	fmt.Printf("\nERROR - Must complete all input params\n")
 	fmt.Printf("\nUsage mode:\n")
-	fmt.Printf("Single Mode --> %s -L  <host-list> -U <user-list> -P <pass-list>\n", os.Args[0])
-	fmt.Printf("Multi Mode  --> %s -l <host> -u <user> -p <pass>\n", os.Args[0])
+	fmt.Printf("Single Mode --> %s -L <host-list> -U <user-list> -P <pass-list>\n", os.Args[0])
+	fmt.Printf("Multi Mode --> %s -l <host> -u <user> -p <pass>\n", os.Args[0])
 	fmt.Printf("Note: options -t <500ms> and -o <out-file> are optional\n")
 	os.Exit(1)
 }
