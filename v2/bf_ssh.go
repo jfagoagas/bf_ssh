@@ -17,6 +17,7 @@ import (
 
 /* Flags Globales*/
 var (
+	//	host      = flag.String("l", "", "Single host in format IP:Port")
 	host      = flag.String("l", "", "Host in format IP:Port")
 	list_host = flag.String("L", "", "List of host in format IP:Port")
 	user      = flag.String("u", "", "Username")
