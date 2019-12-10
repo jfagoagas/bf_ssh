@@ -17,31 +17,6 @@ import (
 
 /* Flags Globales*/
 var (
-<<<<<<< HEAD
-	host      = flag.String("l", "", "Single host in format IP:Port")
-	list_host = flag.String("L", "", "List of host in format IP:Port")
-	user      = flag.String("u", "", "SSH User")
-	pwd       = flag.String("p", "", "SSH Password")
-	// SSH Dial Timeout
-	tmout = flag.Duration("t", 300*time.Millisecond, "Timeout")
-	out   = flag.String("o", "", "Output file")
-)
-
-type host struct {
-    IP string
-    port string
-    user string
-    pwd string
-    success bool
-}
-
-var res = map[int]host{}
-
-func main() {
-	fmt.Printf("##########################################\n")
-	fmt.Printf("######### GO SSH BRUTE -- v0.0.1 #########\n")
-	fmt.Printf("##########################################\n")
-=======
 	host      = flag.String("l", "", "Host in format IP:Port")
 	list_host = flag.String("L", "", "List of host in format IP:Port")
 	user      = flag.String("u", "", "Username")
@@ -76,16 +51,9 @@ var ch = make(chan host_data)
 func main() {
 	/* Banner && Version */
 	banner()
->>>>>>> devel
 
 	/* Arguments parsing */
 	flag.Parse()
-<<<<<<< HEAD
-	if *user == "" && *pwd == "" && (*host == "" || *list_host == "") {
-		fmt.Printf("\nERROR - Must complete input params\n")
-		flag.PrintDefaults()
-		fmt.Printf("Example: %s -H host-list.txt -u root -p T3mp0ra1 -t 500ms > output.txt\n\n", os.Args[0])
-=======
 	if *list_user == "" && *list_pwd == "" && *list_host == "" && *user == "" && *pass == "" && *host == "" {
 		//flag.PrintDefaults()
 		usage()
@@ -101,7 +69,6 @@ func main() {
 		singleCall(*host, *user, *pass)
 	} else {
 		fmt.Printf("\nERROR - You can not mix lists and singles inputs\n")
->>>>>>> devel
 		os.Exit(1)
 	}
 }
@@ -116,46 +83,6 @@ func banner() {
 	fmt.Printf("##########################################\n")
 }
 
-<<<<<<< HEAD
-    /* Timestamp */
-    fmt.Printf("Date: %s", time.Now().Format("02.01.2006 15:04:05\n"))
-
-	/* Si se pasa como parametro un listado de hosts */
-	if *list_host != "" {
-		/* Leemos la lista */
-		hosts, err := readList(*list_host)
-		if err != nil {
-			log.Fatal("Can't read hosts file")
-		}
-		/* Recorremos el listado de hosts */
-		timeS := *tmout
-		for _, host := range hosts {
-			/* Incrementamos el tiempo de espera por cada hilo */
-			timeS += *tmout
-			/* Direccion IP y puerto del host */
-			ip, port, _ := net.SplitHostPort(host)
-			/* Comprobamos los parametros */
-			if net.ParseIP(ip) == nil || port == "" {
-				fmt.Printf("Bad IP:Port Format -- %s:%s\n", ip, port)
-			} else {
-				/* Si todo es correcto lanzamos la conexion */
-				go sshConn(ip, port)
-			}
-		}
-		/* Dormimos el programa principal hasta que
-		   acabe el proceso */
-		time.Sleep(timeS)
-
-	} else if *host != "" {
-		/* Si se pasa como parametro un host */
-		ip, port, _ := net.SplitHostPort(*host)
-		if net.ParseIP(ip) == nil || port == "" {
-			fmt.Printf("Bad IP:Port Format -- %s:%s %s\n", ip, port)
-		} else {
-			/* Llamamos al escaner */
-			sshConn(ip, port)
-		}
-=======
 func usage() {
 	fmt.Printf("\nERROR - Must complete all input params\n")
 	fmt.Printf("\nUsage mode:\n")
@@ -177,25 +104,10 @@ func ip_port_checker(ip, port string) (result bool) {
 		fmt.Printf("\nERROR - Bad Port Format -- %s\n", port)
 	} else {
 		result = true
->>>>>>> devel
 	}
 	return
 }
 
-<<<<<<< HEAD
-func readList(list string) (lst []string, err error) {
-	/* Abrimos la lista indicada */
-	file, err := os.Open(list)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	/* Leemos cada entrada de la lista */
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lst = append(lst, scanner.Text())
-	}
-=======
 func singleCall(host, user, pass string) {
 	ssh_output = make([]host_data, 1)
 	/* Direccion IP y puerto del host */
@@ -346,7 +258,6 @@ func readList(list string) (lst []string, err error) {
 	for scanner.Scan() {
 		lst = append(lst, scanner.Text())
 	}
->>>>>>> devel
 	return
 }
 
