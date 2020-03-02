@@ -34,3 +34,10 @@ Single Mode --> bf_ssh -L  <host-list> -U <user-list> -P <pass-list>
 Multi Mode  --> bf_ssh -l <host> -u <user> -p <pass>
 Note: options -t <500ms> and -o <out-file> are optional
 ```
+## TO-DO
+- [ ] Implement restore file
+- [ ] Sorted output file (only succesful ones)
+- [ ] Login and password combo file (login:passwd)
+- [ ] Test ssh --> host does not support password auth
+- [ ] Check split & joins ip:port
+- [ ] Test host is up --> once per login or only one per host
